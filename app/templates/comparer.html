@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block titre %}{{ fiches[0].ville.nom }} vs {{ fiches[1].ville.nom }} · Comparateur de villes{% endblock %}
+
+{% block contenu %}
+{% set a, b = fiches[0], fiches[1] %}
+<section class="resume-comparaison">
+  <div>
+    <h1>
+      <span class="titre-ville"><span class="pastille pastille-a" aria-hidden="true"></span>{{ a.ville.nom }}</span>
+      <span class="versus">vs</span>
+      <span class="titre-ville"><span class="pastille pastille-b" aria-hidden="true"></span>{{ b.ville.nom }}</span>
+    </h1>
+    <p class="chapo">Profil <strong>{{ profil.libelle }}</strong> · {{ profil.question }}</p>
+  </div>
+  <a class="lien-modifier" href="/?profil={{ saisie.profil }}&a={{ saisie.a | urlencode }}&b={{ saisie.b | urlencode }}">Modifier</a>
+</section>
+
+<section class="cartes-villes">
+  {% for f in fiches %}
+  <article class="carte-ville carte-ville-{{ loop.index }}">
+    {% if f.resume and f.resume.image %}
+    <img src="{{ f.resume.image }}" alt="" class="carte-ville-image" loading="lazy">
+    {% endif %}
+    <div>
+      <h2>{{ f.ville.nom }}</h2>
+      <p class="carte-ville-lieu">{{ f.ville.departement }} · {{ f.ville.region }}</p>
+      {% if f.resume %}
+      <p class="carte-ville-texte">{{ f.resume.extrait | truncate(320) }}</p>
+      <a href="{{ f.resume.url }}" class="lien-source">Lire sur Wikipédia</a>
+      {% else %}
+      <p class="carte-ville-texte manquant">Résumé Wikipédia indisponible.</p>
+      {% endif %}
+    </div>
+  </article>
+  {% endfor %}
+</section>
+
+<nav class="onglets" role="tablist" aria-label="Thèmes">
+  {% for o in onglets %}
+  <a href="#{{ o.id }}" class="onglet" role="tab" data-onglet="{{ o.id }}">{{ o.titre }}</a>
+  {% endfor %}
+</nav>
+
+{% for o in onglets %}
+<section id="{{ o.id }}" class="panneau" role="tabpanel">
+  <h2 class="panneau-titre">{{ o.titre }}</h2>
+
+  <table class="comparaison">
+    <thead>
+      <tr>
+        <th scope="col">Indicateur</th>
+        <th scope="col"><span class="pastille pastille-a" aria-hidden="true"></span>{{ a.ville.nom }}</th>
+        <th scope="col"><span class="pastille pastille-b" aria-hidden="true"></span>{{ b.ville.nom }}</th>
+        <th scope="col" class="col-source">Source</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for ind in o.indicateurs %}
+      {% set prioritaire = ind.id in profil.mis_en_avant %}
+      <tr {% if prioritaire %}class="prioritaire"{% endif %}>
+        <th scope="row">
+          {{ ind.libelle }}
+          {% if prioritaire %}<span class="etiquette">Prioritaire pour ce profil</span>{% endif %}
+        </th>
+        {% for f in fiches %}
+        {% set valeur = f.valeurs.get(ind.id) %}
+        <td class="valeur {% if valeur is none %}manquant{% endif %}"
+            {% if valeur is none %}title="Donnée pas encore branchée"{% endif %}>{{ valeur | formater(ind) }}</td>
+        {% endfor %}
+        <td class="col-source">{{ ind.source }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if o.id == "meteo" %}
+  <div class="graphique-bloc">
+    <h3>Températures des 7 prochains jours</h3>
+    {% if graphique_previsions %}
+    <div class="graphique" data-figure="fig-previsions"></div>
+    <script type="application/json" id="fig-previsions">{{ graphique_previsions | safe }}</script>
+    {% else %}
+    <p class="manquant">Prévisions indisponibles pour le moment (Open-Meteo injoignable).</p>
+    {% endif %}
+  </div>
+
+  <div class="graphique-bloc">
+    <h3>Température moyenne par mois</h3>
+    {% if graphique_climat %}
+    <div class="graphique" data-figure="fig-climat"></div>
+    <script type="application/json" id="fig-climat">{{ graphique_climat | safe }}</script>
+    {% else %}
+    <p class="manquant">Climat non préparé : lancez <code>python -m scripts.preparer_climat</code>.</p>
+    {% endif %}
+  </div>
+  {% endif %}
+</section>
+{% endfor %}
+{% endblock %}
+
+{% block scripts %}
+{% if graphique_previsions or graphique_climat %}
+<script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@4.1.1/plotly.min.js" defer></script>
+{% endif %}
+{% endblock %}
