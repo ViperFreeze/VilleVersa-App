@@ -11,7 +11,8 @@ import pandas as pd
 
 from .outils import DOSSIER_DATA, cache_ttl, get_json, log
 
-API_COMMUNES = "https://geo.api.gouv.fr/communes"
+API_DEPARTEMENTS = "https://geo.api.gouv.fr/departements"
+DELAI_SECONDES = 30
 CHAMPS = "nom,code,population,surface,centre,departement,region"
 SEUIL_POPULATION = 20_000
 FICHIER_VILLES = DOSSIER_DATA / "villes.csv"
@@ -60,9 +61,26 @@ def depuis_api(commune: dict) -> Ville:
 
 
 def telecharger_villes() -> list[Ville]:
-    """Toutes les communes de plus de 20 000 habitants, depuis l'API Géo."""
-    communes = get_json(API_COMMUNES, params={"fields": CHAMPS, "format": "json"})
-    if not communes:
+    """Toutes les communes de plus de 20 000 habitants, depuis l'API Géo.
+
+    Les communes sont demandées département par département : une seule
+    requête pour les ~35 000 communes de France est lente et peut expirer.
+    Renvoie une liste vide si un département échoue, pour ne jamais
+    enregistrer une liste incomplète.
+    """
+    departements = get_json(API_DEPARTEMENTS, params={"fields": "code"}, timeout=DELAI_SECONDES)
+    if not departements:
+        return []
+    communes, echecs = [], []
+    for dep in departements:
+        url = f"{API_DEPARTEMENTS}/{dep['code']}/communes"
+        lot = get_json(url, params={"fields": CHAMPS, "format": "json"}, timeout=DELAI_SECONDES)
+        if lot is None:
+            echecs.append(dep["code"])
+        else:
+            communes.extend(lot)
+    if echecs:
+        log.warning("Départements en échec : %s", ", ".join(echecs))
         return []
     villes = [
         depuis_api(c)

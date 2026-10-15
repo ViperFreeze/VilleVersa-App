@@ -73,6 +73,20 @@ def test_conversion_api_geo():
     assert round(ville.densite) == 4986
 
 
+def test_telecharger_villes_par_departement(monkeypatch):
+    petite = {**NANTES_API, "nom": "Petiteville", "code": "44999", "population": 900}
+    reponses = {
+        geo.API_DEPARTEMENTS: [{"code": "44"}],
+        f"{geo.API_DEPARTEMENTS}/44/communes": [NANTES_API, petite],
+    }
+    monkeypatch.setattr(geo, "get_json", lambda url, **kw: reponses.get(url))
+    assert [v.nom for v in geo.telecharger_villes()] == ["Nantes"]  # sous 20 000 hab. exclue
+
+    # Un département en échec : pas de liste incomplète.
+    reponses[geo.API_DEPARTEMENTS] = [{"code": "44"}, {"code": "35"}]
+    assert geo.telecharger_villes() == []
+
+
 def test_trouver_ville(client):
     assert geo.trouver_ville("Nantes (44)").code == "44109"
     assert geo.trouver_ville("nantes").code == "44109"

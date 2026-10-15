@@ -14,6 +14,7 @@ Lancement :  python -m scripts.preparer_climat            (toutes les villes, ~1
              python -m scripts.preparer_climat --limite 3  (essai sur 3 villes)
 """
 import argparse
+import logging
 import time
 
 import pandas as pd
@@ -34,7 +35,7 @@ def climat_ville(ville: geo.Ville) -> pd.DataFrame | None:
         "end_date": f"{ANNEE_FIN}-12-31",
         "daily": "temperature_2m_mean,precipitation_sum,sunshine_duration",
         "timezone": "auto",
-    })
+    }, timeout=60)  # 10 ans de données : réponse lente
     if not data or "daily" not in data:
         return None
     jours = pd.DataFrame(data["daily"])
@@ -51,6 +52,7 @@ def climat_ville(ville: geo.Ville) -> pd.DataFrame | None:
 
 
 def main() -> None:
+    logging.basicConfig(level=logging.INFO, format="  %(levelname)s %(message)s")
     parser = argparse.ArgumentParser()
     parser.add_argument("--limite", type=int, help="ne traiter que les N premières villes")
     args = parser.parse_args()
