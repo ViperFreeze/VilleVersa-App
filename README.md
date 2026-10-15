@@ -23,6 +23,10 @@ http://127.0.0.1:8000/docs.
 
 Tests (sans réseau) : `python -m pytest`
 
+**Identifiants France Travail** (facultatifs en local) : copier `.env.example` en
+`.env` à la racine et y mettre `FT_CLIENT_ID` et `FT_CLIENT_SECRET`. Le fichier
+`.env` est ignoré par git. Sans lui, l'onglet Emploi affiche « — ».
+
 ## Structure
 
 ```
@@ -74,14 +78,23 @@ python -m scripts.preparer_logement
 python -m scripts.preparer_insee --explorer
 ```
 
-## Mettre en ligne (exemple : Render)
+## Mettre en ligne sur Render
 
-1. Pousser le projet sur GitHub, avec `data/villes.csv`, `data/climat_mensuel.csv`
-   et `data/indicateurs/` (pas `data/sources/`).
-2. Sur Render, créer un « Web Service » relié au dépôt.
-3. Build : `pip install -r requirements.txt`
-4. Start : `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-5. Ajouter `FT_CLIENT_ID` et `FT_CLIENT_SECRET` dans les variables d'environnement.
+Le fichier `render.yaml` décrit le service (offre gratuite, Python 3.13 via
+`.python-version`). Streamlit Community Cloud ne convient pas : il ne lance que
+des scripts Streamlit, pas un serveur FastAPI.
+
+1. En local, préparer les données puis les pousser sur GitHub :
+   `data/villes.csv`, `data/climat_mensuel.csv` et `data/indicateurs/*.csv`
+   (jamais `data/sources/` ni `.env`).
+2. Sur https://render.com, se connecter avec GitHub, puis **New > Blueprint**
+   et choisir le dépôt `VilleVersa-App`.
+3. Render demande `FT_CLIENT_ID` et `FT_CLIENT_SECRET` : coller les valeurs du `.env`.
+4. Valider. L'appli est en ligne sur `https://villeversa.onrender.com`
+   (ou un nom proche si celui-ci est pris). Chaque `git push` sur `main` la redéploie.
+
+Offre gratuite : l'appli s'endort après 15 min sans visite et met environ une
+minute à se réveiller. L'ouvrir quelques minutes avant une démonstration.
 
 ## Licences à citer
 
