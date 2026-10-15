@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 from app.config.profils import (INDICATEURS, PROFILS, THEMES, THEMES_OBLIGATOIRES,
                                 indicateurs_du_theme)
 from app.main import app
-from app.services import emploi, geo, meteo, statiques, wikipedia
+from app.services import francetravail, geo, meteo, statiques, wikipedia
 
 # Réponse réelle de l'API Géo pour Nantes (appel du 09/10/2026).
 NANTES_API = {
@@ -32,7 +32,7 @@ def client(monkeypatch):
     monkeypatch.setattr(meteo, "previsions", lambda lat, lon: PREVISIONS)
     monkeypatch.setattr(meteo, "climat_mensuel", lambda code: None)
     monkeypatch.setattr(meteo, "indicateurs_climat", lambda code: {})
-    monkeypatch.setattr(emploi, "indicateurs_emploi", lambda code: {})
+    monkeypatch.setattr(francetravail, "indicateurs", lambda ville: {})
     monkeypatch.setattr(statiques, "indicateurs",
                         lambda code: {"loyer_m2_t1t2": 14.83} if code == "44109" else {})
     return TestClient(app)
@@ -131,3 +131,64 @@ def test_api_ville(client):
     corps = client.get("/api/ville/44109").json()
     assert corps["indicateurs"]["population"]["valeur"] == 327734
     assert client.get("/api/ville/00000").status_code == 404
+
+
+# ---------------------------------------------------------------- France Travail
+# Réponses construites d'après les schémas OpenAPI des trois API (IndicateurRetour, Commune).
+
+def _retour(*lignes):
+    return {"listeValeursParPeriode": [dict(l) for l in lignes]}
+
+
+def test_derniere_valeur_prend_la_periode_la_plus_recente():
+    retour = _retour(
+        {"codePeriode": "2025T4", "codeNomenclature": "A", "valeurPrincipaleNombre": 50},
+        {"codePeriode": "2026T2", "codeNomenclature": "A", "valeurPrincipaleNombre": 70},
+        {"codePeriode": "2026T2", "codeNomenclature": "B", "valeurPrincipaleNombre": 9},
+    )
+    assert francetravail.derniere_valeur(retour, "A") == 70
+    assert francetravail.derniere_valeur(_retour({"codePeriode": "2026T2", "valeurPrincipaleDecimale": 1.4})) == 1.4
+    assert francetravail.derniere_valeur(None) is None
+
+
+def test_indicateurs_france_travail(monkeypatch):
+    monkeypatch.setenv("FT_CLIENT_ID", "id-test")
+    monkeypatch.setenv("FT_CLIENT_SECRET", "secret-test")
+    francetravail.stats_departement.vider_cache()
+    francetravail.cadre_vie_departement.vider_cache()
+    appels = []
+
+    def faux_appeler(api, chemin, *, corps=None, params=None):
+        appels.append((api, chemin, corps, params))
+        if chemin == "cadre-de-vie.php":
+            return [{"idinsee": "44109", "nom": "Nantes",
+                     "equipements": {"Équipements sportifs": 310, "Santé": 1200, "Éducation": 190,
+                                     "Loisirs": 85, "Services publics": 40}}]
+        return {
+            "indicateur/stat-offres": _retour({"codePeriode": "2026T2", "codeNomenclature": "TOFF-CUMUL12MOIS",
+                                                "valeurPrincipaleNombre": 60000}),
+            "indicateur/stat-demandeurs": _retour({"codePeriode": "2026T2", "codeNomenclature": "A",
+                                                    "valeurPrincipaleNombre": 50000}),
+            "indicateur/stat-salaries": _retour({"codePeriode": "2025", "valeurPrincipaleNombre": 520000}),
+            "indicateur/stat-dynamique-emploi": None,  # indicateur indisponible : simplement absent
+        }[chemin]
+
+    monkeypatch.setattr(francetravail, "appeler", faux_appeler)
+    nantes = geo.depuis_api(NANTES_API)
+    valeurs = francetravail.indicateurs(nantes)
+
+    assert valeurs["offres_12_mois_dep"] == 60000
+    assert valeurs["offres_pour_100_demandeurs"] == 120
+    assert valeurs["salaries_dep"] == 520000
+    assert "dynamisme_emploi_dep" not in valeurs
+    assert valeurs["equip_education"] == 190 and valeurs["equip_services_publics"] == 40
+    corps_offres = next(c for _, chemin, c, _ in appels if chemin == "indicateur/stat-offres")
+    assert corps_offres["codeTypeTerritoire"] == "DEP" and corps_offres["codeTerritoire"] == "44"
+    assert ("cadre_vie", "cadre-de-vie.php", None, {"dep": "44"}) in appels
+    assert all(iid in INDICATEURS for iid in valeurs)
+
+
+def test_france_travail_sans_identifiants(monkeypatch):
+    monkeypatch.delenv("FT_CLIENT_ID", raising=False)
+    monkeypatch.delenv("FT_CLIENT_SECRET", raising=False)
+    assert francetravail.indicateurs(RENNES) == {}

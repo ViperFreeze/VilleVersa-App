@@ -41,8 +41,16 @@ INDICATEURS = {
         Indicateur("region", "Région", "general", "", "API Géo", "{}"),
         # Emploi
         Indicateur("taux_chomage", "Taux de chômage", "emploi", "%", "Insee", "{:.1f}"),
-        Indicateur("nb_offres", "Offres d'emploi en cours", "emploi", "offres", "France Travail"),
-        Indicateur("nb_offres_cdi", "dont CDI", "emploi", "offres", "France Travail"),
+        # France Travail : statistiques départementales (pas de données communales)
+        Indicateur("offres_pour_100_demandeurs", "Offres sur 12 mois pour 100 demandeurs (département)",
+                   "emploi", "", "France Travail, calcul"),
+        Indicateur("offres_12_mois_dep", "Offres d'emploi déposées sur 12 mois (département)",
+                   "emploi", "offres", "France Travail"),
+        Indicateur("demandeurs_a_dep", "Demandeurs d'emploi, catégorie A (département)",
+                   "emploi", "personnes", "France Travail"),
+        Indicateur("salaries_dep", "Salariés (département)", "emploi", "salariés", "France Travail"),
+        Indicateur("dynamisme_emploi_dep", "Indicateur de dynamisme de l'emploi (département)",
+                   "emploi", "", "France Travail", "{:.1f}"),
         # Logement
         Indicateur("loyer_m2_appartement", "Loyer d'annonce, appartement", "logement", "€/m²", "ANIL", "{:.1f}"),
         Indicateur("loyer_m2_t1t2", "Loyer d'annonce, T1-T2", "logement", "€/m²", "ANIL", "{:.1f}"),
@@ -56,8 +64,12 @@ INDICATEURS = {
         Indicateur("ensoleillement_annuel", "Ensoleillement annuel", "meteo", "h", "Open-Meteo"),
         # Thèmes propres à un profil
         Indicateur("nb_etudiants", "Étudiants inscrits", "formation", "étudiants", "MESR"),
-        Indicateur("nb_ecoles", "Écoles", "equipements", "", "Insee BPE"),
-        Indicateur("nb_equipements_sport", "Équipements sportifs", "equipements", "", "Insee BPE"),
+        # France Travail, Cadre de vie des communes (eTerritoire) : données communales
+        Indicateur("equip_education", "Équipements d'éducation", "equipements", "", "France Travail, eTerritoire"),
+        Indicateur("equip_sante", "Équipements de santé", "equipements", "", "France Travail, eTerritoire"),
+        Indicateur("equip_sport", "Équipements sportifs", "equipements", "", "France Travail, eTerritoire"),
+        Indicateur("equip_loisirs", "Équipements de loisirs", "equipements", "", "France Travail, eTerritoire"),
+        Indicateur("equip_services_publics", "Services publics", "equipements", "", "France Travail, eTerritoire"),
         Indicateur("frequentation_gares", "Voyageurs en gare par an", "transports", "voyageurs", "SNCF"),
     ]
 }
@@ -83,12 +95,12 @@ PROFILS = {
         Profil(
             "jeune_actif", "Jeune actif", "Où m'installer pour travailler ?",
             ("general", "emploi", "logement", "meteo"),
-            ("nb_offres", "nb_offres_cdi", "taux_chomage", "loyer_m2_appartement"),
+            ("offres_pour_100_demandeurs", "dynamisme_emploi_dep", "taux_chomage", "loyer_m2_appartement"),
         ),
         Profil(
             "famille", "Famille", "Où s'installer avec des enfants ?",
             ("general", "logement", "equipements", "emploi", "meteo"),
-            ("loyer_m2_t3plus", "loyer_m2_maison", "prix_m2_maison", "nb_ecoles"),
+            ("loyer_m2_t3plus", "loyer_m2_maison", "prix_m2_maison", "equip_education"),
         ),
         Profil(
             "qualite_vie", "Qualité de vie", "Où vit-on le mieux ?",

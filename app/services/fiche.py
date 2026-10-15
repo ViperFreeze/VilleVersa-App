@@ -1,7 +1,7 @@
 """Assemble, pour une ville, toutes les données affichées dans la comparaison."""
 from dataclasses import dataclass, field
 
-from . import emploi, meteo, statiques, wikipedia
+from . import francetravail, meteo, statiques, wikipedia
 from .geo import Ville
 
 
@@ -24,7 +24,7 @@ def construire(ville: Ville) -> Fiche:
     }
     valeurs |= statiques.indicateurs(ville.code)
     valeurs |= meteo.indicateurs_climat(ville.code)
-    valeurs |= emploi.indicateurs_emploi(ville.code)
+    valeurs |= francetravail.indicateurs(ville)
     return Fiche(
         ville=ville,
         valeurs=valeurs,

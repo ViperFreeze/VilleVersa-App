@@ -25,7 +25,11 @@ Tests (sans réseau) : `python -m pytest`
 
 **Identifiants France Travail** (facultatifs en local) : copier `.env.example` en
 `.env` à la racine et y mettre `FT_CLIENT_ID` et `FT_CLIENT_SECRET`. Le fichier
-`.env` est ignoré par git. Sans lui, l'onglet Emploi affiche « — ».
+`.env` est ignoré par git. Sans lui, les indicateurs France Travail affichent « — ».
+L'application France Travail doit être abonnée aux API « Marché du travail »,
+« Informations sur un territoire » et « Cadre de vie des communes » (l'API
+« Offres d'emploi » n'est plus en libre accès). Vérification :
+`python -m scripts.explorer_france_travail`.
 
 ## Structure
 
@@ -38,7 +42,7 @@ app/
     geo.py             liste des villes et fiche d'identité (API Géo)
     wikipedia.py       résumé et image (Wikipédia)
     meteo.py           prévisions (en direct) et climat (précalculé) (Open-Meteo)
-    emploi.py          offres d'emploi (France Travail, identifiants requis)
+    francetravail.py   emploi (département) et équipements (commune), 3 API France Travail
     statiques.py       lit les tables préparées dans data/indicateurs/
     fiche.py           assemble toutes les données d'une ville
   templates/           pages HTML
@@ -64,10 +68,10 @@ L'appli l'affiche dans le bon onglet sans autre modification.
 | Wikipédia | En direct | Vérifier le cas des homonymes au premier test |
 | Open-Meteo, prévisions | En direct | Rien |
 | Open-Meteo, climat | Script `preparer_climat` | Lancer le script (~2 h, peut-être sur deux jours à cause des quotas ; il reprend où il s'est arrêté) |
-| France Travail | En direct si identifiants | S'inscrire, renseigner `FT_CLIENT_ID` et `FT_CLIENT_SECRET`, vérifier les paramètres notés en TODO |
+| France Travail : Marché du travail, Informations sur un territoire, Cadre de vie des communes | En direct si identifiants | Lancer `python -m scripts.explorer_france_travail` pour vérifier les critères |
 | Loyers ANIL et prix DVF | Script `preparer_logement` | Lancer ; confirmer les noms de colonnes |
 | Insee (chômage, etc.) | Script `preparer_insee` | Lancer `--explorer`, choisir les codes, remplir `MESURES` |
-| Étudiants, BPE, gares | Pas encore | Écrire un script sur le même modèle |
+| Étudiants, gares | Pas encore | Écrire un script sur le même modèle |
 
 Ordre conseillé :
 
