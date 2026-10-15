@@ -63,7 +63,7 @@ L'appli l'affiche dans le bon onglet sans autre modification.
 | API Géo | En direct | Rien |
 | Wikipédia | En direct | Vérifier le cas des homonymes au premier test |
 | Open-Meteo, prévisions | En direct | Rien |
-| Open-Meteo, climat | Script `preparer_climat` | Lancer le script (~10 min) |
+| Open-Meteo, climat | Script `preparer_climat` | Lancer le script (~2 h, peut-être sur deux jours à cause des quotas ; il reprend où il s'est arrêté) |
 | France Travail | En direct si identifiants | S'inscrire, renseigner `FT_CLIENT_ID` et `FT_CLIENT_SECRET`, vérifier les paramètres notés en TODO |
 | Loyers ANIL et prix DVF | Script `preparer_logement` | Lancer ; confirmer les noms de colonnes |
 | Insee (chômage, etc.) | Script `preparer_insee` | Lancer `--explorer`, choisir les codes, remplir `MESURES` |
